@@ -35,6 +35,7 @@ type Reader struct {
 	err          error
 	lastByte     int
 	lastRuneSize int
+	slide        bool
 }
 
 const minReadBufferSize = 16
@@ -42,7 +43,7 @@ const minReadBufferSize = 16
 // NewReaderSize returns a new Reader whose buffer has at least the specified
 // size. If the argument io.Reader is already a Reader with large enough
 // size, it returns the underlying Reader.
-func NewReaderSize(rd io.Reader, size int) *Reader {
+func NewReaderSizeSlide(rd io.Reader, size int, slide bool) *Reader {
 	// Is it already a Reader?
 	b, ok := rd.(*Reader)
 	if ok && len(b.buf) >= size {
@@ -56,7 +57,12 @@ func NewReaderSize(rd io.Reader, size int) *Reader {
 		rd:           rd,
 		lastByte:     -1,
 		lastRuneSize: -1,
+		slide:        slide,
 	}
+}
+
+func NewReaderSize(rd io.Reader, size int) *Reader {
+	return NewReaderSizeSlide(rd, size, true)
 }
 
 // NewReader returns a new Reader whose buffer has the default size.
@@ -67,7 +73,7 @@ func NewReader(rd io.Reader) *Reader {
 // fill reads a new chunk into the buffer.
 func (b *Reader) fill() {
 	// Slide existing data to beginning.
-	if b.r > 0 {
+	if b.slide && b.r > 0 {
 		copy(b.buf, b.buf[b.r:b.w])
 		b.w -= b.r
 		b.r = 0
@@ -79,6 +85,12 @@ func (b *Reader) fill() {
 	if e != nil {
 		b.err = e
 	}
+}
+
+func (b *Reader) Fill() error {
+	b.r, b.w = 0, 0
+	b.fill()
+	return b.err
 }
 
 func (b *Reader) readErr() error {
@@ -370,6 +382,10 @@ func (b *Reader) ReadBytes(delim byte) (line []byte, err error) {
 func (b *Reader) ReadString(delim byte) (line string, err error) {
 	bytes, e := b.ReadBytes(delim)
 	return string(bytes), e
+}
+
+func (b *Reader) Bytes() []byte {
+	return b.buf[:b.w]
 }
 
 // buffered output

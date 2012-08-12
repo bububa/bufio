@@ -127,17 +127,6 @@ func (b *Reader) Peek(n int) ([]byte, error) {
 	return b.buf[b.r : b.r+m], err
 }
 
-// ReadN uses Peek to read next n bytes and advances the reader.
-func (b *Reader) ReadN(n int) ([]byte, error) {
-	buf, err := b.Peek(n)
-	if err == nil {
-		b.r += n
-	} else {
-		b.r = b.w
-	}
-	return buf, err
-}
-
 // Read reads data into p.
 // It returns the number of bytes read into p.
 // It calls Read at most once on the underlying Reader,
@@ -293,6 +282,36 @@ func (b *Reader) ReadSlice(delim byte) (line []byte, err error) {
 		}
 	}
 	panic("not reached")
+}
+
+// ReadN tries to read exactly n bytes.
+// The bytes stop being valid at the next read call.
+// If ReadN encounters an error before reading n bytes,
+// it returns all the data in the buffer and the error itself (often io.EOF).
+// ReadN fails with error ErrBufferFull if the buffer fills
+// without reading N bytes.
+// Because the data returned from ReadN will be overwritten
+// by the next I/O operation, most clients should use
+// ReadBytes or ReadString instead.
+func (b *Reader) ReadN(n int) ([]byte, error) {
+	for b.Buffered() < n {
+		if b.err != nil {
+			buf := b.buf[b.r:b.w]
+			b.r = b.w
+			return buf, b.readErr()
+		}
+
+		b.fill()
+
+		// Buffer is full?
+		if b.Buffered() >= len(b.buf) {
+			b.r = b.w
+			return b.buf, ErrBufferFull
+		}
+	}
+	buf := b.buf[b.r : b.r+n]
+	b.r += n
+	return buf, nil
 }
 
 // ReadLine tries to return a single line, not including the end-of-line bytes.

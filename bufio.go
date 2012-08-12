@@ -127,6 +127,17 @@ func (b *Reader) Peek(n int) ([]byte, error) {
 	return b.buf[b.r : b.r+m], err
 }
 
+// ReadN uses Peek to read next n bytes and advances the reader.
+func (b *Reader) ReadN(n int) ([]byte, error) {
+	buf, err := b.Peek(n)
+	if err == nil {
+		b.r += n
+	} else {
+		b.r = b.w
+	}
+	return buf, err
+}
+
 // Read reads data into p.
 // It returns the number of bytes read into p.
 // It calls Read at most once on the underlying Reader,

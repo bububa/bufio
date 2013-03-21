@@ -5,9 +5,9 @@
 package bufio_test
 
 import (
-	. "bufio"
 	"bytes"
 	"fmt"
+	. "github.com/vmihailenco/bufio"
 	"io"
 	"io/ioutil"
 	"strings"

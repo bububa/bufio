@@ -274,6 +274,8 @@ func (b *Reader) ReadSlice(delim byte) (line []byte, err error) {
 			return b.buf, ErrBufferFull
 		}
 	}
+
+	panic("not reached")
 }
 
 // ReadN tries to read exactly n bytes.

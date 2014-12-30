@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	defaultBufSize = 512000
+	defaultBufSize = 1024
 )
 
 var (
